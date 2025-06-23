@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 class ImageDownloaderApp:
     def __init__(self, master):
         self.master = master
-        master.title("Image Downloader")
+        master.title("图片下载器")
         # Ensure there's an event loop for the main thread if not already present
         try:
             self.loop = asyncio.get_event_loop()
@@ -17,16 +17,16 @@ class ImageDownloaderApp:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        self.url_input_label = tk.Label(master, text="Enter Image URLs (one per line or separated by spaces/markdown):")
+        self.url_input_label = tk.Label(master, text="输入图片链接（每行一个或以空格分隔）：")
         self.url_input_label.pack()
 
         self.url_text_area = scrolledtext.ScrolledText(master, wrap=tk.WORD, width=60, height=15)
         self.url_text_area.pack(padx=10, pady=5)
 
-        self.download_button = tk.Button(master, text="Download Images", command=self.start_download_thread)
+        self.download_button = tk.Button(master, text="下载", command=self.start_download_thread)
         self.download_button.pack(pady=5)
 
-        self.status_label = tk.Label(master, text="Status: Idle")
+        self.status_label = tk.Label(master, text="状态：空闲")
         self.status_label.pack(pady=5)
 
         self.progress_area = scrolledtext.ScrolledText(master, wrap=tk.WORD, width=60, height=10, state=tk.DISABLED)
@@ -46,16 +46,16 @@ class ImageDownloaderApp:
 
     def start_download_thread(self):
         self.download_button.config(state=tk.DISABLED)
-        self.status_label.config(text="Status: Downloading...")
+        self.status_label.config(text="状态：下载中...")
         urls = self.get_urls_from_input()
 
         if not urls:
-            messagebox.showwarning("No URLs", "Please enter some image URLs.")
-            self.status_label.config(text="Status: Idle")
+            messagebox.showwarning("未检测到链接", "请输入图片链接。")
+            self.status_label.config(text="状态：空闲")
             self.download_button.config(state=tk.NORMAL)
             return
 
-        self.log_message(f"Starting download for {len(urls)} URLs...")
+        self.log_message(f"开始下载【{len(urls)}】个链接...")
         # Run asyncio event loop in a separate thread to avoid blocking Tkinter GUI
         # Ensure the loop is running. Tkinter's mainloop can be integrated with asyncio.
         # For simplicity and broader compatibility, we'll use a thread for the asyncio loop
@@ -166,8 +166,8 @@ class ImageDownloaderApp:
         successful_downloads = sum(1 for r in results if r)
         failed_downloads = len(urls) - successful_downloads
 
-        self.log_message(f"\nDownload complete. {successful_downloads} successful, {failed_downloads} failed.")
-        self.status_label.config(text=f"Status: Complete. {successful_downloads} OK, {failed_downloads} Failed.")
+        self.log_message(f"\n下载完成。 {successful_downloads} 成功, {failed_downloads} 失败。")
+        self.status_label.config(text=f"状态：完成。{successful_downloads} 成功, {failed_downloads} 失败。")
         self.download_button.config(state=tk.NORMAL)
 
 
@@ -178,7 +178,7 @@ class ImageDownloaderApp:
         # A more robust regex could be: r'https?://[^\s]+'
         # For markdown style links like in the original script: r'!\[.*?\]\((.*?)\)'
         # Let's try to find any valid looking http/https URL first
-        raw_urls = re.findall(r'https?://[^\s"\']+', input_text)
+        raw_urls = re.findall(r'https?://[^\s"\'\)]+', input_text)
 
         # Also try to find markdown image URLs
         markdown_urls = re.findall(r'!\[.*?\]\((https?://[^\s"\']+)\)', input_text)
@@ -192,9 +192,9 @@ class ImageDownloaderApp:
                 if all([result.scheme, result.netloc]): # Basic check for a valid URL structure
                     valid_urls.append(url)
                 else:
-                    self.log_message(f"Skipping invalid URL: {url}")
+                    self.log_message(f"跳过无效链接: {url}")
             except ValueError:
-                self.log_message(f"Skipping invalid URL (parse error): {url}")
+                self.log_message(f"跳过无效链接（解析错误）：{url}")
         return valid_urls
 
 
