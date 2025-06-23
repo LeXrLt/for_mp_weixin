@@ -34,7 +34,6 @@ This document provides guidelines for agents modifying or extending the `ImageDo
 - **Code Clarity:** Maintain clear variable names and add comments for complex logic.
 
 ### Future Enhancements (Ideas)
-- Allow user to select download directory.
 - Progress bar for individual downloads or overall progress.
 - Option to customize retry attempts and timeouts.
 - Thumbnail previews.

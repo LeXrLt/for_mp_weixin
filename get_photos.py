@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
+from tkinter import scrolledtext, messagebox, filedialog
 import re
 import aiohttp
 import asyncio
@@ -24,7 +24,23 @@ class ImageDownloaderApp:
         self.url_text_area.pack(padx=10, pady=5)
 
         self.download_button = tk.Button(master, text="下载", command=self.start_download_thread)
-        self.download_button.pack(pady=5)
+        self.download_button.pack(pady=2) # Adjusted padding
+
+        # Frame for download path selection
+        self.path_frame = tk.Frame(master)
+        self.path_frame.pack(pady=5)
+
+        self.path_label_info = tk.Label(self.path_frame, text="下载路径：")
+        self.path_label_info.pack(side=tk.LEFT, padx=(0, 5))
+
+        self.download_folder = tk.StringVar(master)
+        self.download_folder.set("downloads") # Default download folder
+
+        self.path_display_label = tk.Label(self.path_frame, textvariable=self.download_folder, relief=tk.SUNKEN, width=40)
+        self.path_display_label.pack(side=tk.LEFT, padx=(0,5))
+
+        self.browse_button = tk.Button(self.path_frame, text="浏览", command=self.select_download_directory)
+        self.browse_button.pack(side=tk.LEFT)
 
         self.status_label = tk.Label(master, text="状态：空闲")
         self.status_label.pack(pady=5)
@@ -33,9 +49,17 @@ class ImageDownloaderApp:
         self.progress_area.pack(padx=10, pady=5)
 
         self.id_counter = 1
-        self.download_folder = "downloads"
-        if not os.path.exists(self.download_folder):
-            os.makedirs(self.download_folder)
+        # Initial creation of default download folder is now handled before downloads start
+        # if not os.path.exists(self.download_folder.get()):
+        #     os.makedirs(self.download_folder.get())
+
+
+
+    def select_download_directory(self):
+        directory = filedialog.askdirectory(initialdir=self.download_folder.get())
+        if directory:  # If a directory is chosen (not cancelled)
+            self.download_folder.set(directory)
+            self.log_message(f"Download location set to: {directory}")
 
     def log_message(self, message):
         self.progress_area.config(state=tk.NORMAL)
@@ -46,13 +70,28 @@ class ImageDownloaderApp:
 
     def start_download_thread(self):
         self.download_button.config(state=tk.DISABLED)
+        self.browse_button.config(state=tk.DISABLED) # Disable browse button during download
         self.status_label.config(text="状态：下载中...")
+
+        current_download_folder = self.download_folder.get()
+        if not os.path.exists(current_download_folder):
+            try:
+                os.makedirs(current_download_folder, exist_ok=True)
+                self.log_message(f"Created download directory: {current_download_folder}")
+            except OSError as e:
+                messagebox.showerror("Directory Error", f"Could not create directory: {current_download_folder}\n{e}")
+                self.status_label.config(text="Status: Idle")
+                self.download_button.config(state=tk.NORMAL)
+                self.browse_button.config(state=tk.NORMAL)
+                return
+
         urls = self.get_urls_from_input()
 
         if not urls:
             messagebox.showwarning("未检测到链接", "请输入图片链接。")
             self.status_label.config(text="状态：空闲")
             self.download_button.config(state=tk.NORMAL)
+            self.browse_button.config(state=tk.NORMAL)
             return
 
         self.log_message(f"开始下载【{len(urls)}】个链接...")
@@ -115,13 +154,15 @@ class ImageDownloaderApp:
                     # We can use a portion of the URL to make it more identifiable if needed
                     # For now, simple counter.
                     filename = f"image_{self.id_counter}{ext}"
-                    filepath = os.path.join(self.download_folder, filename)
+                    # Use the potentially updated download_folder from the StringVar
+                    current_download_folder = self.download_folder.get()
+                    filepath = os.path.join(current_download_folder, filename)
 
                     # Ensure filename is unique if we are very unlucky with id_counter + ext
                     while os.path.exists(filepath):
                         self.id_counter += 1
                         filename = f"image_{self.id_counter}{ext}"
-                        filepath = os.path.join(self.download_folder, filename)
+                        filepath = os.path.join(current_download_folder, filename)
 
                     with open(filepath, 'wb') as f:
                         f.write(content)
@@ -169,6 +210,7 @@ class ImageDownloaderApp:
         self.log_message(f"\n下载完成。 {successful_downloads} 成功, {failed_downloads} 失败。")
         self.status_label.config(text=f"状态：完成。{successful_downloads} 成功, {failed_downloads} 失败。")
         self.download_button.config(state=tk.NORMAL)
+        self.browse_button.config(state=tk.NORMAL) # Re-enable browse button
 
 
     def get_urls_from_input(self):
